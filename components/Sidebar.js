@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 
 const NAV = [
   { id: 'overview',     emoji: '⊞', label: 'Vista general'  },
@@ -6,10 +7,16 @@ const NAV = [
   { id: 'ramos',        emoji: '⊟', label: 'Por ramo'       },
   { id: 'alertas',      emoji: '◎', label: 'Alertas'        },
   { id: 'documentos',   emoji: '📄', label: 'Documentos'     },
+  { id: 'docentes',     emoji: '🎓', label: 'Docentes'       },
 ]
 
 export function Sidebar({ active, onNav, alertCount, synced, ramosAll, ramosActivos, toggleRamo, seleccionarTodos, isMobile, sidebarOpen }) {
   const todosActivos = ramosActivos === null;
+  const [busqueda, setBusqueda] = useState('');
+
+  const ramosFiltrados = busqueda.trim()
+    ? (ramosAll || []).filter(r => r.name.toLowerCase().includes(busqueda.trim().toLowerCase()))
+    : (ramosAll || []);
 
   return (
     <aside style={{
@@ -87,6 +94,15 @@ export function Sidebar({ active, onNav, alertCount, synced, ramosAll, ramosActi
                   {alertCount}
                 </span>
               )}
+              {item.id === 'docentes' && (
+                <span style={{
+                  fontSize: '9px', fontWeight: '700',
+                  background: '#332711', color: '#E0A94C',
+                  padding: '1px 6px', borderRadius: '10px',
+                }}>
+                  Nuevo
+                </span>
+              )}
             </button>
           )
         })}
@@ -115,7 +131,36 @@ export function Sidebar({ active, onNav, alertCount, synced, ramosAll, ramosActi
                 </button>
               )}
             </div>
-            {ramosAll.map(r => {
+
+            {/* Buscador de ramos */}
+            <div style={{ padding: '0 8px 8px' }}>
+              <input
+                type="text"
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar ramo…"
+                style={{
+                  width: '100%',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #2A2A2A',
+                  background: '#1A1A1A',
+                  color: '#F0F0F0',
+                  fontSize: '12.5px',
+                  outline: 'none',
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = '#3A3A3A'}
+                onBlur={e => e.currentTarget.style.borderColor = '#2A2A2A'}
+              />
+            </div>
+
+            {ramosFiltrados.length === 0 && (
+              <div style={{ padding: '4px 10px 8px', fontSize: '12px', color: '#888888' }}>
+                Sin ramos que coincidan.
+              </div>
+            )}
+
+            {ramosFiltrados.map(r => {
               const activo = todosActivos || (ramosActivos && ramosActivos.includes(r.name));
               return (
                 <button

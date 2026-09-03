@@ -9,6 +9,8 @@ import { Alertas } from '@/components/Alertas'
 import { getWeekN, daysTo, WEEKS, isPast, fDate } from '@/lib/utils'
 import { Documentos } from '@/components/Documentos'
 import ResumenIA from '@/components/ResumenIA'
+import { QRFormButton } from '@/components/QRFormButton'
+import { Docentes } from '@/components/Docentes'
 
 function Metrics({ evals, ramos }) {
   const hoy = new Date(); hoy.setHours(0,0,0,0)
@@ -59,6 +61,7 @@ const PAGES = {
   ramos:        { title: 'Por ramo',        sub: 'Carga y evaluaciones desglosadas por asignatura'      },
   alertas:      { title: 'Alertas',         sub: 'Evaluaciones en los próximos 14 días'                 },
   documentos:   { title: 'Documentos',      sub: 'Pautas, certámenes anteriores y material de estudio'  },
+  docentes:     { title: 'Docentes',        sub: 'Clases online con docentes y ex-ayudantes verificados' },
 }
 
 export default function Home() {
@@ -66,7 +69,7 @@ export default function Home() {
   const [isMobile, setIsMobile]   = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const { evals, docs, ramos, ramosAll, ramosActivos, toggleRamo, seleccionarTodos, loading, error, synced, reload, rColor } = useData()
+  const { evals, docs, docentes, ramos, ramosAll, ramosActivos, toggleRamo, seleccionarTodos, loading, error, synced, reload, rColor } = useData()
 
   useEffect(() => {
     const check = () => {
@@ -262,10 +265,13 @@ export default function Home() {
               {page === 'ramos'        && <RamoGrid evals={evals} ramos={ramos} rColor={rColor} />}
               {page === 'alertas'      && <Alertas evals={evals} />}
               {page === 'documentos'   && <Documentos docs={docs} ramos={ramos} rColor={rColor} />}
+              {page === 'docentes'     && <Docentes docentes={docentes} />}
             </>
           )}
         </div>
       </main>
+
+      <QRFormButton />
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
