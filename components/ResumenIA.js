@@ -1,5 +1,10 @@
 'use client'
 import { useState } from 'react'
+import { Sparkles, RefreshCw, LoaderCircle } from 'lucide-react'
+import { T, darkCard } from '@/lib/theme'
+import { Button, Icon } from './ui'
+
+const c = T.color
 
 export default function ResumenIA({ ramos: ramosProp }) {
   const [resumen,  setResumen]  = useState('')
@@ -42,65 +47,44 @@ export default function ResumenIA({ ramos: ramosProp }) {
   }
 
   return (
-    <div style={{ marginTop: '24px' }}>
-
-      {/* Título + botón en la misma fila */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: '#F0F0F0' }}>
-          ✨ Resumen IA
-        </div>
-        <button
-          onClick={generar}
-          disabled={cargando}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '6px 14px', borderRadius: '8px',
-            border: '1px solid #2A2A2A', background: '#1A1A1A',
-            fontSize: '12px', fontWeight: '500', color: '#888888',
-            cursor: cargando ? 'not-allowed' : 'pointer',
-            opacity: cargando ? 0.6 : 1,
-            transition: 'background 120ms ease-out',
-          }}
-          onMouseEnter={e => { if (!cargando) e.currentTarget.style.background = '#222222' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#1A1A1A' }}
-        >
-          {cargando
-            ? <><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>↻</span> Generando…</>
-            : generado ? '↻ Regenerar' : '✨ Generar resumen'
-          }
-        </button>
-      </div>
-
-      {/* Tarjeta de contenido */}
-      <div style={{
-        background: '#1A1A1A',
-        border: '1px solid #2A2A2A',
-        borderRadius: '12px',
-        padding: '20px',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+    <section className="pl-card pl-enter" style={{ ...darkCard, animationDelay: '240ms', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <span style={{
+        alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8, height: 28, padding: '0 12px',
+        border: `1px solid ${c.inkLine}`, borderRadius: T.radius.pill,
+        fontFamily: T.font.mono, fontSize: 12, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: c.faint,
       }}>
+        <Icon as={Sparkles} size={14} />
+        Asistente IA
+      </span>
+
+      <h2 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em', color: c.white }}>Resumen IA</h2>
+
+      <div aria-live="polite" style={{ fontSize: 15, lineHeight: 1.65, minHeight: 48 }}>
         {!generado && !cargando ? (
-          <p style={{ fontSize: '13px', color: '#888888', margin: 0 }}>
-            Selecciona tus ramos activos y haz clic en <strong>Generar resumen</strong> para recibir recomendaciones personalizadas de priorización.
+          <p style={{ margin: 0, color: c.faint }}>
+            Selecciona tus ramos activos y haz clic en <strong style={{ color: c.white, fontWeight: 600 }}>Generar resumen</strong> para recibir recomendaciones personalizadas de priorización.
           </p>
         ) : cargando ? (
-          <div style={{ fontSize: '13px', color: '#888888', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>↻</span>
+          <div style={{ color: c.faint, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon as={LoaderCircle} size={18} className="pl-spin" />
             Analizando tu carga académica…
           </div>
         ) : (
-          <p style={{
-            fontSize: '13px',
-            color: esError ? '#C73A1F' : '#F0F0F0',
-            lineHeight: '1.7',
-            margin: 0,
-            whiteSpace: 'pre-wrap',
-          }}>
+          <p className="pl-swap-in" style={{ margin: 0, color: esError ? c.accent : c.white, whiteSpace: 'pre-wrap' }}>
             {resumen}
           </p>
         )}
       </div>
 
-    </div>
+      <Button
+        variant="accent"
+        icon={cargando ? LoaderCircle : generado ? RefreshCw : Sparkles}
+        onClick={generar}
+        disabled={cargando}
+        style={{ alignSelf: 'flex-start', marginTop: 'auto' }}
+      >
+        {cargando ? 'Generando…' : generado ? 'Regenerar' : 'Generar resumen'}
+      </Button>
+    </section>
   )
 }

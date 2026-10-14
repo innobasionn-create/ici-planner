@@ -1,237 +1,188 @@
 'use client'
 import { useState } from 'react'
+import { LayoutGrid, CalendarDays, BookOpen, Bell, FileText, GraduationCap, RefreshCw, Search } from 'lucide-react'
+import { T } from '@/lib/theme'
+import { Icon, Eyebrow, Pill, Input, Toggle, Button, useSlider } from './ui'
 
-const NAV = [
-  { id: 'overview',     emoji: '⊞', label: 'Vista general'  },
-  { id: 'evaluaciones', emoji: '☰', label: 'Evaluaciones'   },
-  { id: 'ramos',        emoji: '⊟', label: 'Por ramo'       },
-  { id: 'alertas',      emoji: '◎', label: 'Alertas'        },
-  { id: 'documentos',   emoji: '📄', label: 'Documentos'     },
-  { id: 'docentes',     emoji: '🎓', label: 'Docentes'       },
+const c = T.color
+
+export const NAV = [
+  { id: 'overview',     icon: LayoutGrid,    label: 'Vista general', short: 'Inicio'     },
+  { id: 'evaluaciones', icon: CalendarDays,  label: 'Evaluaciones',  short: 'Calendario' },
+  { id: 'ramos',        icon: BookOpen,      label: 'Por ramo',      short: 'Ramos'      },
+  { id: 'alertas',      icon: Bell,          label: 'Alertas'                            },
+  { id: 'documentos',   icon: FileText,      label: 'Documentos',    short: 'Material'   },
+  { id: 'docentes',     icon: GraduationCap, label: 'Docentes'                           },
 ]
 
-export function Sidebar({ active, onNav, alertCount, synced, ramosAll, ramosActivos, toggleRamo, seleccionarTodos, isMobile, sidebarOpen }) {
-  const todosActivos = ramosActivos === null;
-  const [busqueda, setBusqueda] = useState('');
+export function Logo({ compact }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{
+        width: compact ? 32 : 36, height: compact ? 32 : 36, borderRadius: T.radius.logo, background: c.accent,
+        color: c.white, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <Icon as={CalendarDays} size={compact ? 18 : 20} />
+      </div>
+      <span style={{ fontSize: compact ? 19 : 22, fontWeight: 600, letterSpacing: '-0.03em', color: c.ink }}>
+        Planicy
+      </span>
+    </div>
+  )
+}
+
+// Item de navegación: pill de 44px. El fondo del activo lo pone el indicador deslizante.
+export function NavItem({ item, active, onClick, badge, itemRef, ...rest }) {
+  return (
+    <button
+      ref={itemRef}
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className="pl-btn pl-nav"
+      style={{
+        position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', width: '100%', height: 44,
+        padding: '0 16px', border: 'none', borderRadius: T.radius.pill, cursor: 'pointer', textAlign: 'left',
+      }}
+      {...rest}
+    >
+      <span className="pl-nav__inner" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+        <Icon as={item.icon} size={18} />
+        <span style={{ flex: 1, fontSize: 15, fontWeight: 500, whiteSpace: 'nowrap' }}>{item.label}</span>
+      </span>
+      {badge}
+    </button>
+  )
+}
+
+export function navBadge(id, alertCount) {
+  if (id === 'alertas' && alertCount > 0) {
+    return <Pill style={{ fontFamily: T.font.mono, fontWeight: 500, height: 22, padding: '0 8px' }}>{alertCount}</Pill>
+  }
+  if (id === 'docentes') return <Pill tone="accent" style={{ height: 22, padding: '0 8px' }}>Nuevo</Pill>
+  return null
+}
+
+// Filtro de ramos activos (sidebar en desktop, hoja "Más" en mobile).
+export function RamoFilter({ ramosAll, ramosActivos, toggleRamo, seleccionarTodos }) {
+  const todosActivos = ramosActivos === null
+  const [busqueda, setBusqueda] = useState('')
+
+  if (!ramosAll || ramosAll.length === 0) return null
 
   const ramosFiltrados = busqueda.trim()
-    ? (ramosAll || []).filter(r => r.name.toLowerCase().includes(busqueda.trim().toLowerCase()))
-    : (ramosAll || []);
+    ? ramosAll.filter(r => r.name.toLowerCase().includes(busqueda.trim().toLowerCase()))
+    : ramosAll
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px 12px' }}>
+        <Eyebrow>Mis ramos</Eyebrow>
+        {!todosActivos && (
+          <Button variant="link" onClick={seleccionarTodos} style={{ fontSize: 13 }}>Ver todos</Button>
+        )}
+      </div>
+
+      <Input
+        icon={Search}
+        height={40}
+        value={busqueda}
+        onChange={e => setBusqueda(e.target.value)}
+        placeholder="Buscar ramo…"
+        style={{ fontSize: 14, borderRadius: T.radius.pill }}
+        wrapStyle={{ marginBottom: 8 }}
+      />
+
+      {ramosFiltrados.length === 0 && (
+        <div style={{ padding: '8px', fontSize: 14, color: c.muted }}>Sin ramos que coincidan.</div>
+      )}
+
+      {ramosFiltrados.map(r => {
+        const activo = todosActivos || (ramosActivos && ramosActivos.includes(r.name))
+        return (
+          <button
+            key={r.name}
+            type="button"
+            role="switch"
+            aria-checked={!!activo}
+            onClick={() => toggleRamo(r.name)}
+            className="pl-btn pl-btn--ghost"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 40,
+              padding: '0 8px 0 12px', border: 'none', borderRadius: T.radius.pill, cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <span style={{
+              flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              color: activo ? c.ink : c.muted, transition: `color ${T.motion.fast} ease-out`,
+            }}>
+              {r.name}
+            </span>
+            <Toggle visual size="sm" on={!!activo} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export function Sidebar({ active, onNav, alertCount, synced, ramosAll, ramosActivos, toggleRamo, seleccionarTodos }) {
+  const { wrap, ref, box } = useSlider(active, 'y')
 
   return (
     <aside style={{
-      width: '240px',
-      flexShrink: 0,
-      background: '#111111',
-      borderRight: '1px solid #2A2A2A',
-      display: 'flex',
-      flexDirection: 'column',
-      overflowY: 'auto',
-      ...(isMobile ? {
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        height: '100%',
-        zIndex: 200,
-        paddingTop: '56px',
-        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-        transition: 'transform 250ms cubic-bezier(0.23, 1, 0.32, 1)',
-      } : {
-        height: '100%',
-      }),
+      width: 264, height: '100%', background: c.canvas,
+      display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden', padding: '24px 16px',
     }}>
-      {/* Logo */}
-      <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid #2A2A2A' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-          <div style={{
-            width: '28px', height: '28px',
-            background: 'linear-gradient(135deg, #2D6A4F, #40916C)',
-            borderRadius: '8px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '14px', color: 'white', fontWeight: '600',
-          }}>I</div>
-          <span style={{ fontSize: '15px', fontWeight: '600', color: '#F0F0F0', letterSpacing: '-0.3px' }}>
-            ICI Planner
-          </span>
-        </div>
-        <div style={{ fontSize: '11.5px', color: '#888888', paddingLeft: '38px' }}>
-          Semestre 2026-1
-        </div>
+      <div style={{ padding: '0 8px', height: 48, display: 'flex', alignItems: 'center' }}>
+        <Logo />
       </div>
 
-      {/* Nav */}
-      <nav style={{ padding: '12px 8px', flex: 1 }}>
-        <div style={{ fontSize: '11px', fontWeight: '500', color: '#888888', padding: '0 8px 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          Vistas
-        </div>
-        {NAV.map(item => {
-          const isActive = active === item.id
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNav(item.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                width: '100%', padding: '7px 10px', borderRadius: '6px',
-                border: 'none',
-                background: isActive ? '#F0F0F0' : 'transparent',
-                color: isActive ? '#0F0F0F' : '#888888',
-                fontSize: '14px', fontWeight: isActive ? '500' : '400',
-                cursor: 'pointer', textAlign: 'left', marginBottom: '2px',
-                transition: 'background 120ms ease-out, color 120ms ease-out',
-              }}
-              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#222222' }}
-              onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-            >
-              <span style={{ fontSize: '16px', opacity: 0.7 }}>{item.emoji}</span>
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.id === 'alertas' && alertCount > 0 && (
-                <span style={{
-                  fontSize: '10px', fontWeight: '600',
-                  background: '#FFDDD8', color: '#C73A1F',
-                  padding: '1px 7px', borderRadius: '10px',
-                }}>
-                  {alertCount}
-                </span>
-              )}
-              {item.id === 'docentes' && (
-                <span style={{
-                  fontSize: '9px', fontWeight: '700',
-                  background: '#332711', color: '#E0A94C',
-                  padding: '1px 6px', borderRadius: '10px',
-                }}>
-                  Nuevo
-                </span>
-              )}
-            </button>
-          )
-        })}
+      <Eyebrow style={{ padding: '32px 8px 12px' }}>Tu espacio académico</Eyebrow>
 
-        <div style={{ height: '1px', background: '#2A2A2A', margin: '12px 8px' }} />
-
-        {/* Filtro de ramos */}
-        {ramosAll && ramosAll.length > 0 && (
-          <>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '0 8px 6px',
-            }}>
-              <span style={{ fontSize: '11px', fontWeight: '500', color: '#888888', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                Mis ramos
-              </span>
-              {!todosActivos && (
-                <button
-                  onClick={seleccionarTodos}
-                  style={{
-                    fontSize: '10px', color: '#2D6A4F', fontWeight: '500',
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  }}
-                >
-                  Ver todos
-                </button>
-              )}
-            </div>
-
-            {/* Buscador de ramos */}
-            <div style={{ padding: '0 8px 8px' }}>
-              <input
-                type="text"
-                value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                placeholder="Buscar ramo…"
-                style={{
-                  width: '100%',
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  border: '1px solid #2A2A2A',
-                  background: '#1A1A1A',
-                  color: '#F0F0F0',
-                  fontSize: '12.5px',
-                  outline: 'none',
-                }}
-                onFocus={e => e.currentTarget.style.borderColor = '#3A3A3A'}
-                onBlur={e => e.currentTarget.style.borderColor = '#2A2A2A'}
-              />
-            </div>
-
-            {ramosFiltrados.length === 0 && (
-              <div style={{ padding: '4px 10px 8px', fontSize: '12px', color: '#888888' }}>
-                Sin ramos que coincidan.
-              </div>
-            )}
-
-            {ramosFiltrados.map(r => {
-              const activo = todosActivos || (ramosActivos && ramosActivos.includes(r.name));
-              return (
-                <button
-                  key={r.name}
-                  onClick={() => toggleRamo(r.name)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    width: '100%', padding: '6px 10px', borderRadius: '6px',
-                    border: 'none', background: 'transparent',
-                    cursor: 'pointer', textAlign: 'left', marginBottom: '1px',
-                    transition: 'background 120ms ease-out',
-                    opacity: activo ? 1 : 0.4,
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#222222'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <div style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: activo ? r.color : '#444444',
-                    flexShrink: 0, transition: 'opacity 150ms ease-out, transform 150ms ease-out',
-                  }} />
-                  <span style={{
-                    fontSize: '12.5px',
-                    color: activo ? '#F0F0F0' : '#888888',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    transition: 'color 150ms ease-out',
-                  }}>
-                    {r.name}
-                  </span>
-                </button>
-              )
-            })}
-
-            <div style={{ height: '1px', background: '#2A2A2A', margin: '12px 8px' }} />
-          </>
+      <nav ref={wrap} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {box && (
+          <span aria-hidden="true" style={{
+            position: 'absolute', left: 0, right: 0, top: box.top, height: box.height,
+            background: c.ink, borderRadius: T.radius.pill,
+            transition: `top ${T.motion.base} ${T.motion.spring}`,
+          }} />
         )}
-
-        <div style={{ fontSize: '11px', fontWeight: '500', color: '#888888', padding: '0 8px 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          Datos
-        </div>
-        <button
-          onClick={() => onNav('reload')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            width: '100%', padding: '7px 10px', borderRadius: '6px',
-            border: 'none', background: 'transparent',
-            color: '#888888', fontSize: '14px', cursor: 'pointer',
-            textAlign: 'left', transition: 'background 120ms ease-out',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = '#222222'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <span style={{ fontSize: '16px', opacity: 0.7 }}>↻</span>
-          Actualizar datos
-        </button>
+        {NAV.map(item => (
+          <NavItem
+            key={item.id}
+            item={item}
+            itemRef={ref(item.id)}
+            active={active === item.id}
+            onClick={() => onNav(item.id)}
+            badge={navBadge(item.id, alertCount)}
+            data-nav={item.id}
+          />
+        ))}
       </nav>
 
-      {/* Footer */}
-      <div style={{ padding: '12px 16px', borderTop: '1px solid #2A2A2A', fontSize: '11.5px', color: '#888888' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-          <span style={{
-            display: 'inline-block', width: '6px', height: '6px',
-            borderRadius: '50%', background: '#2D6A4F',
-          }} />
-          En vivo desde Sheets
-        </div>
-        {synced && (
-          <div style={{ fontFamily: 'monospace', fontSize: '10.5px' }}>
-            Sync {synced.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+      <div style={{ paddingTop: 32 }}>
+        <RamoFilter ramosAll={ramosAll} ramosActivos={ramosActivos} toggleRamo={toggleRamo} seleccionarTodos={seleccionarTodos} />
+      </div>
+
+      <div style={{ paddingTop: 32 }}>
+        <Eyebrow style={{ padding: '0 8px 12px' }}>Datos</Eyebrow>
+        <NavItem item={{ icon: RefreshCw, label: 'Actualizar datos' }} onClick={() => onNav('reload')} />
+      </div>
+
+      <div style={{ marginTop: 'auto', paddingTop: 32 }}>
+        <div style={{ background: c.surface, borderRadius: T.radius.row, padding: '16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Semestre 2026-1</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: c.muted }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.ink }} />
+            En vivo desde Sheets
           </div>
-        )}
+          {synced && (
+            <div style={{ fontFamily: T.font.mono, fontSize: 12, color: c.muted }}>
+              Sync {synced.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   )

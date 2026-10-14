@@ -1,35 +1,24 @@
 import { badge } from '@/lib/utils'
+import { T } from '@/lib/theme'
+import { Pill } from './ui'
 
 export function DaysBadge({ days }) {
   const b = badge(days)
   return (
-    <span style={{
-      display: 'inline-block',
-      fontSize: '11px',
-      fontWeight: '500',
-      padding: '2px 8px',
-      borderRadius: '20px',
-      marginTop: '4px',
-      background: b.bg,
-      color: b.tc,
-      fontFamily: 'monospace',
-    }}>
+    <Pill
+      tone={b.tone === 'accent' ? 'accent' : 'neutral'}
+      withDot={b.tone === 'accent'}
+      style={{ fontFamily: T.font.mono, fontWeight: 500, ...(b.tone === 'muted' ? { color: T.color.muted } : null) }}
+    >
       {b.txt}
-    </span>
+    </Pill>
   )
 }
 
 export function NivelBadge({ nivel }) {
   return (
-    <span style={{
-      fontSize: '12px',
-      fontWeight: '500',
-      padding: '4px 12px',
-      borderRadius: '20px',
-      background: nivel.bg,
-      color: nivel.tc,
-    }}>
-      {nivel.ico} {nivel.lbl}
-    </span>
+    <Pill tone={nivel.tone} withDot={nivel.tone === 'accent'}>
+      {nivel.lbl}
+    </Pill>
   )
 }

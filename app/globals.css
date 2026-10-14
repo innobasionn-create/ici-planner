@@ -1,30 +1,125 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+  Bloque mínimo de Planicy: solo lo que los estilos inline no pueden hacer
+  (pseudoclases, media queries, keyframes). Los colores llegan como variables
+  --pl-* que app/layout.js genera desde lib/theme.js, así no hay hex sueltos.
+*/
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
+html, body { margin: 0; padding: 0; min-height: 100%; }
 
 body {
-  background: #0F0F0F;
-  color: #F0F0F0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--pl-canvas);
+  color: var(--pl-ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "tnum" 1;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+button, input, select { font: inherit; color: inherit; }
+::placeholder { color: var(--pl-faint); opacity: 1; }
+:focus-visible { outline: 2px solid var(--pl-ink); outline-offset: 2px; }
+
+/* ── Botones ─────────────────────────────────────────────── */
+.pl-btn {
+  transition: transform var(--pl-fast) var(--pl-out), background-color var(--pl-fast) ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.pl-btn:active:not(:disabled) { transform: scale(.965); }
+.pl-btn:disabled { cursor: default; opacity: .55; }
+.pl-btn--primary   { background: var(--pl-ink);    color: var(--pl-white); }
+.pl-btn--secondary { background: var(--pl-fill);   color: var(--pl-ink); }
+.pl-btn--accent    { background: var(--pl-accent); color: var(--pl-on-accent); }
+.pl-btn--ghost     { background: transparent;      color: var(--pl-ink); }
+.pl-btn--link      { background: transparent;      color: var(--pl-ink); }
+@media (hover: hover) {
+  .pl-btn--primary:hover:not(:disabled)   { background: var(--pl-ink-hover); }
+  .pl-btn--secondary:hover:not(:disabled) { background: var(--pl-fill-hover); }
+  .pl-btn--ghost:hover:not(:disabled)     { background: var(--pl-fill); }
+  .pl-btn--link:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+/* ── Filas dentro de cards ───────────────────────────────── */
+.pl-row { background: var(--pl-subtle); transition: background-color var(--pl-fast) ease-out; }
+.pl-row--static { cursor: default; }
+@media (hover: hover) {
+  .pl-row:not(.pl-row--static):hover { background: var(--pl-fill); }
 }
 
-.font-mono { font-family: 'SF Mono', 'Fira Code', monospace; }
+/* Filas de tabla: hover sutil y acciones visibles al pasar el mouse */
+.pl-trow { transition: background-color var(--pl-fast) ease-out; }
+@media (hover: hover) {
+  .pl-trow:hover { background: var(--pl-subtle); }
+}
+
+/* ── Navegación ──────────────────────────────────────────── */
+.pl-nav { color: var(--pl-ink); background: transparent; transition: color var(--pl-base) var(--pl-out); }
+.pl-nav > .pl-nav__inner { opacity: .7; transition: opacity var(--pl-fast) ease-out; }
+.pl-nav[aria-current="page"] { color: var(--pl-white); }
+.pl-nav[aria-current="page"] > .pl-nav__inner { opacity: 1; }
+@media (hover: hover) {
+  .pl-nav:not([aria-current="page"]):hover { background: var(--pl-fill); }
+  .pl-nav:hover > .pl-nav__inner { opacity: 1; }
+}
+
+/* ── Inputs ──────────────────────────────────────────────── */
+.pl-input { transition: border-color var(--pl-fast) ease-out, box-shadow var(--pl-fast) ease-out; }
+.pl-input:focus { border-color: var(--pl-ink) !important; box-shadow: 0 0 0 3px var(--pl-focus-ring); }
+
+/* ── Layout responsive (<900px: bottom bar en vez de sidebar) ── */
+.pl-main { padding: 0 48px 64px; }
+.pl-h1   { font-size: 44px; }
+.pl-kpi  { font-size: 56px; }
+.pl-only-mobile { display: none !important; }
+.pl-fab { bottom: 24px; }
+
+@media (max-width: 899px) {
+  .pl-only-desktop { display: none !important; }
+  .pl-only-mobile  { display: revert !important; }
+  .pl-main { padding: 0 16px 128px; }
+  .pl-h1   { font-size: 32px; }
+  .pl-kpi  { font-size: 40px; }
+  .pl-fab  { bottom: 96px; }
+  .pl-stack { grid-template-columns: minmax(0, 1fr) !important; }
+  .pl-card  { padding: 20px !important; }
+}
+.pl-only-mobile.pl-flex { display: none !important; }
+@media (max-width: 899px) { .pl-only-mobile.pl-flex { display: flex !important; } }
+
+/* ── Movimiento ──────────────────────────────────────────── */
+@keyframes plEnter {
+  from { opacity: 0; transform: translateY(8px); filter: blur(6px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+@keyframes plOut {
+  from { opacity: 1; filter: none; }
+  to   { opacity: 0; filter: blur(6px); }
+}
+@keyframes plFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes plCell { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes plSheet { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes plPop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes plSpin { to { transform: rotate(360deg); } }
+
+/* "backwards" en vez de "both": al terminar no queda transform/filter, así los
+   tooltips position:fixed dentro de la card no quedan atrapados. */
+.pl-enter    { animation: plEnter var(--pl-base) var(--pl-out) backwards; }
+.pl-swap-in  { animation: plEnter var(--pl-base) var(--pl-out) backwards; }
+.pl-swap-out { animation: plOut 120ms ease-in forwards; }
+.pl-cell-in  { animation: plCell var(--pl-base) var(--pl-out) backwards; }
+.pl-fade     { animation: plFade var(--pl-fast) ease-out backwards; }
+.pl-sheet    { animation: plSheet var(--pl-slow) var(--pl-out) backwards; }
+.pl-pop      { animation: plPop var(--pl-base) var(--pl-spring) backwards; }
+.pl-spin     { animation: plSpin 1s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes plEnter { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes plOut   { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes plCell  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes plSheet { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes plPop   { from { opacity: 0; } to { opacity: 1; } }
+  .pl-btn:active:not(:disabled) { transform: none; }
+  *, *::before, *::after { transition-property: opacity, background-color, color !important; }
+}
