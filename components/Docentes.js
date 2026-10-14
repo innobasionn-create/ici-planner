@@ -1,25 +1,29 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { Card } from './Card'
+import { GraduationCap, Search, X, Mail, Phone, Copy, Check, UserSearch } from 'lucide-react'
+import { T, type } from '@/lib/theme'
+import { Card, Pill, Avatar, Button, IconButton, IconTile, Icon, Input, Empty } from './ui'
 
-const GOLD = '#E0A94C'
-const GOLD_SOFT = '#332711'
+const c = T.color
 
 function fPrecio(n) {
   return '$' + n.toLocaleString('es-CL')
 }
 
-function iniciales(nombre) {
-  const partes = nombre.trim().split(/\s+/)
-  return ((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase()
+function Verificado({ d }) {
+  if (d.verificado) return <Pill tone="accent" icon={Check}>Verificado{d.credencial ? ' · ' + d.credencial : ''}</Pill>
+  if (d.credencial) return <span style={{ fontSize: 14, color: c.muted }}>{d.credencial}</span>
+  return null
 }
 
-// Color determinístico por nombre, para no depender de un índice de lista.
-const AVATAR_COLORS = ['#3FA372', '#4C8FE0', '#B5451B', '#8B5FBF', '#C7743F', '#2D8A8A']
-function avatarColor(nombre) {
-  let h = 0
-  for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
+function Precio({ d, size = 28 }) {
+  if (!(d.tarifaHora > 0)) return <span style={{ fontSize: 15, fontWeight: 500, color: c.muted }}>Tarifa a consultar</span>
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
+      <span style={{ fontSize: size, fontWeight: 600, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>{fPrecio(d.tarifaHora)}</span>
+      <span style={{ fontSize: 14, color: c.muted }}>CLP / hora</span>
+    </span>
+  )
 }
 
 function ContactoLinea({ contacto, fono }) {
@@ -39,169 +43,107 @@ function ContactoLinea({ contacto, fono }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {contacto && (
         esLink
-          ? <a href={contacto} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', color: GOLD }}>{contacto}</a>
-          : <div style={{ fontSize: '12.5px', color: '#F0F0F0' }}>{esMail ? '✉ ' : ''}{contacto}</div>
+          ? <a href={contacto} target="_blank" rel="noopener noreferrer" className="pl-btn pl-btn--link" style={{ fontSize: 15, fontWeight: 600, color: c.ink, wordBreak: 'break-all' }}>{contacto}</a>
+          : <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }}>{esMail && <Icon as={Mail} size={16} />}{contacto}</div>
       )}
-      {fono && <div style={{ fontSize: '12.5px', color: '#888888' }}>📞 {fono}</div>}
-      <button
+      {fono && <div style={{ display: 'flex', alignItems: 'center', gap: 8, ...type.mono, fontSize: 14, color: c.muted }}><Icon as={Phone} size={16} />{fono}</div>}
+      <Button
+        variant={copiado ? 'accent' : 'secondary'}
+        size="sm"
+        icon={copiado ? Check : Copy}
         onClick={copiar}
-        style={{
-          alignSelf: 'flex-start', marginTop: '2px',
-          fontSize: '11px', color: GOLD, background: 'none', border: 'none',
-          cursor: 'pointer', padding: 0, fontWeight: '500',
-        }}
+        className={copiado ? 'pl-pop' : ''}
+        style={{ alignSelf: 'flex-start', marginTop: 4 }}
       >
-        {copiado ? '✓ Copiado' : 'Copiar contacto'}
-      </button>
+        {copiado ? 'Copiado' : 'Copiar contacto'}
+      </Button>
     </div>
   )
 }
 
-function TeacherCard({ d, onOpen }) {
-  const color = avatarColor(d.nombre)
+function TeacherCard({ d, onOpen, i }) {
   return (
-    <button
-      onClick={() => onOpen(d)}
-      style={{
-        textAlign: 'left', cursor: 'pointer',
-        background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '12px',
-        padding: '16px', transition: 'background 120ms ease-out, border-color 120ms ease-out',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.background = '#1F1F1F'; e.currentTarget.style.borderColor = '#333333' }}
-      onMouseLeave={e => { e.currentTarget.style.background = '#1A1A1A'; e.currentTarget.style.borderColor = '#2A2A2A' }}
-    >
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-        <div style={{
-          width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
-          background: color, color: '#0B0B0C',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '13px', fontWeight: '600',
-        }}>
-          {iniciales(d.nombre)}
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#F0F0F0' }}>{d.nombre}</div>
-          {d.verificado ? (
-            <div style={{ fontSize: '10.5px', fontWeight: '600', color: GOLD, marginTop: '2px' }}>
-              ✓ Verificado{d.credencial ? ' · ' + d.credencial : ''}
-            </div>
-          ) : d.credencial ? (
-            <div style={{ fontSize: '10.5px', color: '#888888', marginTop: '2px' }}>{d.credencial}</div>
-          ) : null}
+    <Card enter={i} style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <Avatar name={d.nombre} />
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+          <div style={type.title}>{d.nombre}</div>
+          <Verificado d={d} />
         </div>
       </div>
       {d.ramos.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '11px' }}>
-          {d.ramos.map(r => (
-            <span key={r} style={{
-              fontSize: '10px', padding: '2.5px 8px', borderRadius: '20px',
-              background: '#232323', color: '#888888', border: '1px solid #2A2A2A',
-            }}>
-              {r}
-            </span>
-          ))}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {d.ramos.map(r => <Pill key={r}>{r}</Pill>)}
         </div>
       )}
-      <div style={{
-        display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
-        marginTop: '13px', paddingTop: '12px', borderTop: '1px solid #2A2A2A',
-      }}>
-        <div style={{ fontSize: '12px', fontWeight: '600', fontFamily: 'monospace', color: '#F0F0F0' }}>
-          {d.tarifaHora > 0 ? fPrecio(d.tarifaHora) + '/h' : 'Tarifa a consultar'}
-        </div>
+      {d.bio && (
+        <p style={{ ...type.muted, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{d.bio}</p>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 'auto', paddingTop: 16, borderTop: `1px solid ${c.line}` }}>
+        <Precio d={d} />
+        <Button size="sm" onClick={() => onOpen(d)}>Ver perfil</Button>
       </div>
-    </button>
+    </Card>
   )
 }
 
 function ProfileModal({ d, onClose }) {
-  const color = avatarColor(d.nombre)
   return (
     <div
+      className="pl-fade"
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 260,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
-        animation: 'fadeIn 150ms ease-out',
+        position: 'fixed', inset: 0, background: c.scrim, zIndex: 300,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={d.nombre}
+        className="pl-pop"
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '16px',
-          maxWidth: '420px', width: '100%', maxHeight: '85vh', overflowY: 'auto',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.5)', padding: '22px',
+          background: c.surface, borderRadius: T.radius.card, boxShadow: T.shadow.pop,
+          maxWidth: 440, width: '100%', maxHeight: '85vh', overflowY: 'auto', padding: 32,
+          display: 'flex', flexDirection: 'column', gap: 20,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{
-              width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0,
-              background: color, color: '#0B0B0C',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '16px', fontWeight: '600',
-            }}>
-              {iniciales(d.nombre)}
-            </div>
-            <div>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: '#F0F0F0' }}>{d.nombre}</div>
-              {d.verificado ? (
-                <div style={{ fontSize: '11px', fontWeight: '600', color: GOLD, marginTop: '2px' }}>
-                  ✓ Verificado{d.credencial ? ' · ' + d.credencial : ''}
-                </div>
-              ) : d.credencial ? (
-                <div style={{ fontSize: '11px', color: '#888888', marginTop: '2px' }}>{d.credencial}</div>
-              ) : null}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <Avatar name={d.nombre} size={56} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+              <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em' }}>{d.nombre}</div>
+              <Verificado d={d} />
             </div>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Cerrar"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888888', fontSize: '18px', lineHeight: 1, padding: '2px' }}
-          >
-            ✕
-          </button>
+          <IconButton icon={X} label="Cerrar" onClick={onClose} style={{ marginRight: -8, marginTop: -4 }} />
         </div>
 
-        {d.bio && (
-          <p style={{ fontSize: '12.5px', color: '#888888', lineHeight: 1.7, marginTop: '16px' }}>
-            {d.bio}
-          </p>
-        )}
+        {d.bio && <p style={{ ...type.muted, fontSize: 15, margin: 0 }}>{d.bio}</p>}
 
         {d.ramos.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '14px' }}>
-            {d.ramos.map(r => (
-              <span key={r} style={{
-                fontSize: '10.5px', padding: '3px 9px', borderRadius: '20px',
-                background: '#232323', color: '#888888', border: '1px solid #2A2A2A',
-              }}>
-                {r}
-              </span>
-            ))}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {d.ramos.map(r => <Pill key={r}>{r}</Pill>)}
           </div>
         )}
 
-        <div style={{
-          marginTop: '18px', paddingTop: '16px', borderTop: '1px solid #2A2A2A',
-          background: GOLD_SOFT, margin: '18px -22px -22px', padding: '16px 22px 20px',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
-            <span style={{ fontSize: '11px', color: '#888888' }}>Valor de la sesión</span>
-            <b style={{ fontFamily: 'monospace', fontSize: '15px', color: '#F0F0F0' }}>
-              {d.tarifaHora > 0 ? fPrecio(d.tarifaHora) + '/h' : 'A consultar'}
-            </b>
+        <div style={{ background: c.subtle, borderRadius: T.radius.row, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, color: c.muted }}>Valor de la sesión</span>
+            <Precio d={d} size={24} />
           </div>
           <ContactoLinea contacto={d.contacto} fono={d.fono} />
           {!d.contacto && !d.fono && (
-            <div style={{ fontSize: '11.5px', color: '#888888' }}>Sin datos de contacto cargados todavía.</div>
+            <div style={{ fontSize: 14, color: c.muted }}>Sin datos de contacto cargados todavía.</div>
           )}
-          <div style={{ fontSize: '10px', color: '#888888', marginTop: '10px', lineHeight: 1.5 }}>
-            La coordinación es directa con el docente por ahora — la agenda dentro de ICI Planner todavía no está construida.
-          </div>
+        </div>
+
+        <div style={{ fontSize: 13, color: c.muted, lineHeight: 1.5, paddingLeft: 12, borderLeft: `2px solid ${c.line}` }}>
+          La coordinación es directa con el docente por ahora — la agenda dentro de ICI Planner todavía no está construida.
         </div>
       </div>
     </div>
@@ -222,50 +164,34 @@ export function Docentes({ docentes }) {
   }, [busqueda, docentes])
 
   return (
-    <div>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-        background: GOLD_SOFT, border: '1px solid rgba(224,169,76,0.3)', borderRadius: '10px',
-        padding: '11px 16px', marginBottom: '18px', fontSize: '12px', color: GOLD, lineHeight: 1.6,
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div className="pl-enter" style={{
+        display: 'flex', alignItems: 'center', gap: 16,
+        background: c.subtle, border: `1px dashed ${c.faint}`, borderRadius: T.radius.card, padding: '20px 24px',
       }}>
-        <span>🎓</span>
-        <span>
-          Docentes y ex-ayudantes verificados a mano por el equipo — hipótesis <b>H9</b> del Lean Canvas,
+        <IconTile icon={GraduationCap} style={{ background: c.surface }} />
+        <span style={{ fontSize: 14, color: c.muted, lineHeight: 1.6 }}>
+          Docentes y ex-ayudantes verificados a mano por el equipo — hipótesis <b style={{ color: c.ink }}>H9</b> del Lean Canvas,
           todavía sin validar con entrevistas propias a profesores/tutores.
         </span>
       </div>
 
-      <Card style={{ marginBottom: '18px' }}>
-        <div style={{ padding: '14px 16px' }}>
-          <input
-            type="text"
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por ramo o nombre…"
-            style={{
-              width: '100%', fontSize: '12.5px', padding: '8px 12px', borderRadius: '7px',
-              border: '1px solid #2A2A2A', background: '#0F0F0F', color: '#F0F0F0', outline: 'none',
-            }}
-          />
-        </div>
-      </Card>
+      <Input
+        icon={Search}
+        value={busqueda}
+        onChange={e => setBusqueda(e.target.value)}
+        placeholder="Buscar por ramo o nombre…"
+        wrapStyle={{ maxWidth: 480 }}
+      />
 
       {docentes.length === 0 ? (
-        <Card>
-          <div style={{ padding: '48px', textAlign: 'center', fontSize: '13px', color: '#888888' }}>
-            Todavía no hay docentes cargados en la Sheet.
-          </div>
-        </Card>
+        <Card enter={0}><Empty icon={GraduationCap}>Todavía no hay docentes cargados en la Sheet.</Empty></Card>
       ) : filtrados.length === 0 ? (
-        <Card>
-          <div style={{ padding: '48px', textAlign: 'center', fontSize: '13px', color: '#888888' }}>
-            Sin docentes que coincidan.
-          </div>
-        </Card>
+        <Card enter={0}><Empty icon={UserSearch}>Sin docentes que coincidan.</Empty></Card>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px' }}>
-          {filtrados.map(d => (
-            <TeacherCard key={d.nombre} d={d} onOpen={setAbierto} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
+          {filtrados.map((d, i) => (
+            <TeacherCard key={d.nombre} d={d} i={i} onOpen={setAbierto} />
           ))}
         </div>
       )}

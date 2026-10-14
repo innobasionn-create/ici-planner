@@ -1,5 +1,10 @@
+import { TriangleAlert, CalendarClock, Check } from 'lucide-react'
 import { getWeekN, nivelInfo, fRango, fDateLong } from '@/lib/utils'
-import { Card } from './Card'
+import { T, type } from '@/lib/theme'
+import { Card, IconTile } from './ui'
+import { NivelBadge } from './Badge'
+
+const c = T.color
 
 export function Alertas({ evals }) {
   const hoy  = new Date(); hoy.setHours(0,0,0,0)
@@ -13,55 +18,39 @@ export function Alertas({ evals }) {
   const semanas = Object.keys(bySem).map(Number).sort((a,b)=>a-b)
 
   if (semanas.length===0) return (
-    <Card>
-      <div style={{ padding: '48px', textAlign: 'center', fontSize: '13px', color: '#888888' }}>
-        Sin evaluaciones en los próximos 14 días. ✓
+    <Card enter={0}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <IconTile icon={Check} variant="primary" />
+        <span style={{ ...type.body }}>Sin evaluaciones en los próximos 14 días.</span>
       </div>
     </Card>
   )
 
   return (
-    <Card>
+    <Card enter={0} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {semanas.map(n=>{
         const evs=bySem[n].sort((a,b)=>a.fecha-b.fecha)
         const nivel=nivelInfo(evs.length)
+        const critica = nivel.tone === 'accent'
         return (
-          <div key={n} style={{
-            display: 'flex', alignItems: 'flex-start', gap: '14px',
-            padding: '16px 20px', borderBottom: '1px solid #2A2A2A',
-            transition: 'background 120ms ease-out',
-          }}
-            onMouseEnter={e=>e.currentTarget.style.background='#222222'}
-            onMouseLeave={e=>e.currentTarget.style.background='transparent'}
-          >
-            <div style={{
-              width: '36px', height: '36px', borderRadius: '10px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '18px', flexShrink: 0, background: nivel.bg,
-            }}>
-              {nivel.ico}
-            </div>
+          <div key={n} className="pl-row pl-row--static" style={{
+            display: 'flex', alignItems: 'flex-start', gap: 16, borderRadius: T.radius.row, padding: '16px 20px',
+          }}>
+            <IconTile icon={critica ? TriangleAlert : CalendarClock} variant={critica ? 'accent' : 'neutral'} style={critica ? null : { background: c.surface }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>
+              <div style={{ ...type.title, fontSize: 15, marginBottom: 8 }}>
                 Semana {n} — {fRango(n)}
-                <span style={{ fontWeight: '400', color: '#888888' }}> · {evs.length} evaluación(es)</span>
+                <span style={{ fontWeight: 400, color: c.muted }}> · {evs.length} evaluación(es)</span>
               </div>
               {evs.map((e,i)=>(
-                <div key={i} style={{ fontSize: '12px', color: '#888888', lineHeight: 1.7 }}>
-                  <span style={{ fontWeight: '600', color: '#F0F0F0' }}>{e.ramo}</span>
+                <div key={i} style={{ fontSize: 14, color: c.muted, lineHeight: 1.7 }}>
+                  <span style={{ fontWeight: 600, color: c.ink }}>{e.ramo}</span>
                   {' — '}{e.tipo}
                   {e.cont ? ': ' + e.cont.slice(0,70) + '…' : ' · ' + fDateLong(e.fecha)}
                 </div>
               ))}
             </div>
-            <span style={{
-              fontSize: '11px', fontWeight: '500',
-              padding: '3px 10px', borderRadius: '20px',
-              background: nivel.bg, color: nivel.tc,
-              flexShrink: 0, marginTop: '2px',
-            }}>
-              {nivel.lbl}
-            </span>
+            <NivelBadge nivel={nivel} />
           </div>
         )
       })}

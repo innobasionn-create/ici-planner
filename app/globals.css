@@ -83,7 +83,7 @@ button, input, select { font: inherit; color: inherit; }
   .pl-kpi  { font-size: 40px; }
   .pl-fab  { bottom: 96px; }
   .pl-stack { grid-template-columns: minmax(0, 1fr) !important; }
-  .pl-card  { padding: 20px !important; }
+  .pl-card:not(.pl-card--flush) { padding: 20px !important; }
 }
 .pl-only-mobile.pl-flex { display: none !important; }
 @media (max-width: 899px) { .pl-only-mobile.pl-flex { display: flex !important; } }

@@ -1,8 +1,13 @@
 'use client'
 import { useState } from 'react'
+import { CalendarX } from 'lucide-react'
 import { getWeekN, isPast, daysTo, fDate, WEEKS } from '@/lib/utils'
-import { Card } from './Card'
+import { useSwap } from '@/lib/useSwap'
+import { T, type } from '@/lib/theme'
+import { Card, Pill, Segmented, Empty } from './ui'
 import { DaysBadge } from './Badge'
+
+const c = T.color
 
 const TABS = [
   { id: 'todas',    label: 'Todas'            },
@@ -10,50 +15,73 @@ const TABS = [
   { id: 'criticas', label: 'Semanas críticas' },
 ]
 
-function EvalItem({ e, rColor }) {
-  const days = daysTo(e.fecha)
+// Las evaluaciones "grandes" (solemne, prueba, certamen, examen) van con acento.
+const esMayor = tipo => /solemne|prueba|certamen|examen/i.test(tipo)
+
+export function TipoPill({ tipo }) {
+  return esMayor(tipo) ? <Pill tone="accent" withDot>{tipo}</Pill> : <Pill>{tipo}</Pill>
+}
+
+// Peso de la evaluación: mini barra 64×6 + porcentaje en mono.
+function PesoBar({ peso }) {
+  const p = Math.max(0, Math.min(100, parseFloat(peso) || 0))
+  if (!peso) return <span style={{ ...type.mono, color: c.faint }}>—</span>
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '10px 1fr auto',
-      gap: '14px',
-      alignItems: 'start',
-      padding: '14px 20px',
-      borderBottom: '1px solid #2A2A2A',
-      transition: 'background 120ms ease-out',
-      cursor: 'default',
-    }}
-      onMouseEnter={e => e.currentTarget.style.background = '#222222'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <div style={{
-        width: '10px', height: '10px', borderRadius: '50%',
-        marginTop: '4px', flexShrink: 0,
-        background: rColor(e.ramo),
-      }} />
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: rColor(e.ramo), marginBottom: '2px' }}>
-          {e.ramo}
-        </div>
-        <div style={{ fontSize: '12px', color: '#888888' }}>
-          {e.tipo}{e.peso ? ' · ' + e.peso + '%' : ''}
-        </div>
-        {e.cont && (
-          <div style={{ fontSize: '12px', color: '#888888', marginTop: '5px', fontStyle: 'italic', lineHeight: 1.5 }}>
-            {e.cont}
-          </div>
-        )}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ width: 64, height: 6, borderRadius: T.radius.pill, background: c.track, overflow: 'hidden' }}>
+        <div style={{ width: `${p}%`, height: '100%', background: c.ink, borderRadius: T.radius.pill }} />
       </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: '12px', fontFamily: 'monospace', color: '#888888' }}>{fDate(e.fecha)}</div>
-        <DaysBadge days={days} />
-      </div>
+      <span style={{ ...type.mono, color: c.ink }}>{peso}%</span>
     </div>
   )
 }
 
-export function EvalList({ evals, rColor }) {
+const COLS = 'minmax(0, 2.4fr) minmax(0, 1.4fr) 88px 56px 140px 88px'
+const th = { ...type.eyebrow, padding: '0 12px' }
+
+function TableRow({ e }) {
+  return (
+    <div className="pl-trow" style={{
+      display: 'grid', gridTemplateColumns: COLS, alignItems: 'center', minHeight: 72,
+      borderTop: `1px solid ${c.line}`, borderRadius: 0, padding: '12px 0',
+    }}>
+      <div style={{ padding: '0 12px', minWidth: 0 }}>
+        <div style={{ ...type.title, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.ramo}</div>
+        {e.cont && (
+          <div title={e.cont} style={{ fontSize: 13, color: c.muted, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {e.cont.replace(/\s*\n\s*/g, ' ')}
+          </div>
+        )}
+      </div>
+      <div style={{ padding: '0 12px', minWidth: 0 }}><TipoPill tipo={e.tipo} /></div>
+      <div style={{ ...type.mono, padding: '0 12px' }}>{fDate(e.fecha)}</div>
+      <div style={{ ...type.mono, padding: '0 12px', color: c.muted }}>S{getWeekN(e.fecha)}</div>
+      <div style={{ padding: '0 12px' }}><PesoBar peso={e.peso} /></div>
+      <div style={{ padding: '0 12px', display: 'flex', justifyContent: 'flex-end' }}><DaysBadge days={daysTo(e.fecha)} /></div>
+    </div>
+  )
+}
+
+function MobileItem({ e }) {
+  return (
+    <div className="pl-row pl-row--static" style={{ borderRadius: T.radius.row, padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ ...type.title, fontSize: 15, minWidth: 0 }}>{e.ramo}</div>
+        <DaysBadge days={daysTo(e.fecha)} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <TipoPill tipo={e.tipo} />
+        <span style={{ ...type.mono, color: c.muted }}>{fDate(e.fecha)} · S{getWeekN(e.fecha)}</span>
+      </div>
+      {e.peso && <PesoBar peso={e.peso} />}
+      {e.cont && <div style={{ ...type.muted, whiteSpace: 'pre-wrap' }}>{e.cont}</div>}
+    </div>
+  )
+}
+
+export function EvalList({ evals }) {
   const [tab, setTab] = useState('todas')
+  const [shown, swapClass] = useSwap(tab)
   const hoy  = new Date(); hoy.setHours(0,0,0,0)
   const en14 = new Date(hoy); en14.setDate(hoy.getDate()+14)
   const todas = [...evals].sort((a,b) => a.fecha - b.fecha)
@@ -65,40 +93,43 @@ export function EvalList({ evals, rColor }) {
     proximas: todas.filter(e => e.fecha >= hoy && e.fecha <= en14),
     criticas: todas.filter(e => critNs.has(getWeekN(e.fecha))),
   }
-  const current = lists[tab]
+  const current = lists[shown]
 
   return (
-    <Card>
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #2A2A2A', padding: '0 4px' }}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              padding: '12px 16px',
-              fontSize: '13px',
-              fontWeight: tab === t.id ? '500' : '400',
-              color: tab === t.id ? '#F0F0F0' : '#888888',
-              border: 'none',
-              borderBottom: tab === t.id ? '2px solid #F0F0F0' : '2px solid transparent',
-              background: 'transparent',
-              cursor: 'pointer',
-              marginBottom: '-1px',
-              transition: 'color 120ms ease-out, border-color 120ms ease-out',
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+    <Card enter={0}>
+      <div style={{ marginBottom: 24 }}>
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          options={TABS.map(t => ({ ...t, count: lists[t.id].length }))}
+        />
       </div>
-      {current.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center', color: '#888888', fontSize: '13px' }}>
-          Sin evaluaciones en esta vista.
-        </div>
-      ) : (
-        current.map((e, i) => <EvalItem key={i} e={e} rColor={rColor} />)
-      )}
+
+      <div key={shown} className={swapClass}>
+        {current.length === 0 ? (
+          <Empty icon={CalendarX}>Sin evaluaciones en esta vista.</Empty>
+        ) : (
+          <>
+            {/* Desktop: tabla */}
+            <div className="pl-only-desktop" role="table">
+              <div role="row" style={{ display: 'grid', gridTemplateColumns: COLS, height: 40, alignItems: 'center' }}>
+                <div style={th}>Ramo</div>
+                <div style={th}>Tipo</div>
+                <div style={th}>Fecha</div>
+                <div style={th}>Sem.</div>
+                <div style={th}>Peso</div>
+                <div style={{ ...th, textAlign: 'right' }}>Faltan</div>
+              </div>
+              {current.map((e, i) => <TableRow key={i} e={e} />)}
+            </div>
+
+            {/* Mobile: lista de cards */}
+            <div className="pl-only-mobile pl-flex" style={{ flexDirection: 'column', gap: 8 }}>
+              {current.map((e, i) => <MobileItem key={i} e={e} />)}
+            </div>
+          </>
+        )}
+      </div>
     </Card>
   )
 }
